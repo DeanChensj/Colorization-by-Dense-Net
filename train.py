@@ -1,14 +1,25 @@
 import argparse
+import caffe
+from model import Net
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-from model import Net
 from skimage import color
-from util import load_data
 import time
 
 
+def to_gray(color_img):
+    color_img = color.rgb2lab(color_img)
+    grey_img = color_img.copy()
+    grey_img[:, :, 1:] = 0
+    return grey_img
+
+
 parser = argparse.ArgumentParser()
+
+# Generic
+parser.add_argument(('-p', '--data_path'), type=str, default='',
+                    help='input data path')
 # Optimization
 parser.add_argument(('-b', '--batch'), type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
@@ -28,6 +39,7 @@ parser.add_argument(('-rc', '--resume-from-checkpoint'), type=str, default='',
 
 args = parser.parse_args()
 
+path = args.data_path
 batch_size = args.batch
 num_epoches = args.epoch
 use_cuda = args.cuda
@@ -47,8 +59,11 @@ criterion = nn.MSELoss()
 optimizer = None
 
 if __name__ == "__main__":
+
     # Use numpy array here
-    grey_img, color_img = load_data()
+    color_img = caffe.io.load_image(path)
+    grey_img = to_gray(color_img)
+
     num_imgs = grey_img.shape[0]
     num_batches = num_imgs // batch_size
     loss_list = []
